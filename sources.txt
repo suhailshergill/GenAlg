@@ -1,0 +1,9 @@
+either-4.1.1
+MonadRandom-0.1.13
+probability-0.2.4
+QuickCheck-2.6
+smallcheck-1.1.1
+test-framework-th-0.2.4
+test-framework-smallcheck-0.2
+test-framework-quickcheck2-0.3.0.2
+test-framework-0.8.0.3
