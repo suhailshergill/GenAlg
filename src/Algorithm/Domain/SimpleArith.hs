@@ -7,7 +7,7 @@ import Algorithm.GenAlg hiding (mkGenAlgConfig)
 import qualified Algorithm.GenAlg as GA (mkGenAlgConfig)
 import Algorithm.GenAlg.Dist
 
-import Prelude hiding () -- FIXME
+import Prelude hiding (head, undefined)
 import Control.Monad.Random
 import Control.Lens
 import Test.QuickCheck
