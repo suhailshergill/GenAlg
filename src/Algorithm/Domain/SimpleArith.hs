@@ -179,23 +179,25 @@ mutationOp conf = doMutation (conf ^.mutRate)
 -- crossover --
 ---------------
 type PrefixLength = Length
-doCrossover :: CrossoverRate
+doCrossover :: GenAlgConfig Digits a
             -> (Chromosome Digits)
             -> (Chromosome Digits)
             -> (Rand StdGen) ((Chromosome Digits), (Chromosome Digits))
-doCrossover (CrossoverRate rate) x1 x2 = do
-  shouldCrossover <- bernoulli rate
+doCrossover conf x1 x2 = do
+  shouldCrossover <- crossOrNot (conf ^.crossRate)
   if  shouldCrossover
   then do
     -- pick a random points in [0, n1) and [0, n2) excluding (0,0)
-    (p1, p2) <- crossoverPoints x1 x2
+    (p1, p2) <- crossoverPoints
+                (conf^.minChromosomeLength) (conf^.maxChromosomeLength)
+                x1 x2
     let offspring = do
                   -- use splitSuffix to extract suffixes
                   s1 <- splitSuffix x1 p1
                   s2 <- splitSuffix x2 p2
                   -- perform crossover
-                  y1 <- patchSuffix x1 p1 s2
-                  y2 <- patchSuffix x2 p2 s1
+                  y1 <- patchSuffix x1 p1 s2 -- p1 + l2 - p2
+                  y2 <- patchSuffix x2 p2 s1 -- p2 + l1 - p1
                   return (y1, y2)
     case offspring of
          Nothing -> return(x1, x2) -- return original in case of failure
@@ -203,13 +205,21 @@ doCrossover (CrossoverRate rate) x1 x2 = do
   else return (x1, x2)
 
   where
-    crossoverPoints :: (Chromosome Digits)
+    crossOrNot (CrossoverRate rate) = bernoulli rate
+
+    crossoverPoints :: MinLength
+                    -> MaxLength
+                    -> (Chromosome Digits)
                     -> (Chromosome Digits)
                     -> Rand StdGen (Length, Length)
-    crossoverPoints x y = case (size x, size y) of
+    crossoverPoints (MinLength minL) (MaxLength maxL) x y = case (size x, size y) of
       (1, 1) -> return (0,0)
       (l1, l2) -> uniformButNot (0,0)
-                  [(p1, p2) | p1 <- [0..(l1-1)], p2 <- [0..(l2-1)]]
+                  [(p1, p2) | p1 <- [0..(l1-1)], p2 <- [0..(l2-1)],
+                            inRange minL maxL (l2 + p1 - p2),
+                            inRange minL maxL (l1 - p1 + p2)]
+
+    inRange minL maxL l = (minL <= l) && (l <= maxL)
 
     splitSuffix :: (Chromosome Digits) -- ^ Original chromosome
                 -> PrefixLength -- ^ Discard prefix from 0 to here
@@ -238,7 +248,7 @@ crossoverOp :: GenAlgConfig Digits a
             -> (Chromosome Digits)
             -> (Chromosome Digits)
             -> (Rand StdGen) ((Chromosome Digits), (Chromosome Digits))
-crossoverOp conf = doCrossover (conf ^.crossRate)
+crossoverOp conf = doCrossover conf
 
 
 ----------------------
