@@ -1,5 +1,7 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE DeriveDataTypeable #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Algorithm.Domain.SimpleArith where
 
@@ -10,10 +12,14 @@ import Algorithm.GenAlg.Dist
 import Prelude hiding (head, undefined)
 import Control.Monad.Random
 import Control.Lens
+import Data.Data
+import Data.Data.Lens (uniplate)
+import Safe
+
 import Test.QuickCheck
 
 data Digits = Zero | One | Two | Three | Four | Five | Six | Seven | Eight | Nine
-            deriving (Bounded, Enum, Eq, Ord, Read, Show)
+            deriving (Bounded, Enum, Eq, Ord, Read, Show, Typeable, Data)
 
 -- | Generate random digits
 instance Random Digits where
@@ -39,7 +45,7 @@ data instance Chromosome Digits = Lit Digits
                                 | MulBy (Digits) (Chromosome Digits)
                                 | DecBy (Digits) (Chromosome Digits)
                                 | DivBy (Digits) (Chromosome Digits)
-                                  deriving (Eq, Show)
+                                  deriving (Eq, Show, Data, Typeable)
 
 -- | Eta-equivalence for 'Chromosome Digits' data constructors. This works
 -- because:
@@ -50,6 +56,13 @@ data instance Chromosome Digits = Lit Digits
 instance Eq (Digits -> (Chromosome Digits) -> (Chromosome Digits)) where
   f == g = (f One (Lit One)) == (g One (Lit One))
 
+-- | Eq instance for Lit constructor
+instance Eq (Digits -> Chromosome Digits) where
+  f == g = f One == g One
+
+-- | Plated instance to allow us to perform generic operations
+instance Plated (Chromosome Digits) where
+  plate = uniplate
 
 -- | Generate a valid partial chromosome. In our particular case the validity of
 -- a chromosome is a recursive property i.e., a chromosome is valid if its head
@@ -88,13 +101,12 @@ randomPair startState = case startState of
                         else liftRand random
 
 -- | Calculate the size of a chromosome.
+--
+-- NOTE: This limits the maximum size of a Chromosome, since it internally uses
+-- the list 'length' function
 size :: (Chromosome Digits)
      -> Length
-size (Lit _) = 1
-size (IncBy _ expr) = 1 + size(expr)
-size (MulBy _ expr) = 1 + size(expr)
-size (DecBy _ expr) = 1 + size(expr)
-size (DivBy _ expr) = 1 + size(expr)
+size = toInteger . length . universe
 
 
 -- | An interpretation of the toy arithmetic language
@@ -169,7 +181,6 @@ mutationWorker mrate@(MutationRate rate) fun lit expr = do
   newExpr <- doMutation mrate expr
   return $ newFun newLit newExpr
 
-
 mutationOp :: GenAlgConfig Digits a
               -> (Chromosome Digits)
               -> (Rand StdGen) (Chromosome Digits)
@@ -221,15 +232,13 @@ doCrossover conf x1 x2 = do
 
     inRange minL maxL l = (minL <= l) && (l <= maxL)
 
+    -- | Also limits maximum length of chromosome, since internally uses
+    -- Int. Note, that since this representation isn't meant to be very scalable
+    -- this is not likely to be the limiting factor
     splitSuffix :: (Chromosome Digits) -- ^ Original chromosome
                 -> PrefixLength -- ^ Discard prefix from 0 to here
                 -> Maybe (Chromosome Digits)
-    splitSuffix x@(Lit _) 0 = Just x
-    splitSuffix (Lit _) _ = Nothing
-    splitSuffix (IncBy _ xs) n = splitSuffix xs (n-1)
-    splitSuffix (MulBy _ xs) n = splitSuffix xs (n-1)
-    splitSuffix (DecBy _ xs) n = splitSuffix xs (n-1)
-    splitSuffix (DivBy _ xs) n = splitSuffix xs (n-1)
+    splitSuffix xs n = atMay (universe xs) (fromInteger n)
 
     patchSuffix :: (Chromosome Digits) -- ^ Original Chromosome
                 -> PrefixLength -- ^ Keep prefix from 0 to here
