@@ -68,12 +68,10 @@ instance Plated (Chromosome Digits) where
 -- a chromosome is a recursive property i.e., a chromosome is valid if its head
 -- is valid and its tail is valid.
 --
--- TODO:
+-- TODO/HMM:
 --
 -- * add a Random (Chromosome Digits -> Chromosome Digits) instance
 -- * include case for Lit constructor (w/ PolyKinds perhaps?)
---
--- HMM: A generics library (lens plated etc) would also work
 type PartialOp = ((Digits -> Chromosome Digits -> Chromosome Digits), Digits)
 randomPair :: Maybe (PartialOp -- ^ Starting pair
                      , Rate)
@@ -122,9 +120,12 @@ exprVal e = case e of
 
 -- | Modified genetic algorithm configuration generator. We:
 --
--- * cap the maximum chromosome length. This is done, because current
+-- * cap the maximum chromosome length. This is done because current
 -- chromosome representation doesn't scale well to larger sizes. The current cap
--- of 30 isn't tight.
+-- of 30 isn't tight. An absolute upper bound on the maximum permissible
+-- chromosome length is given by:
+--
+-- > maxBound :: Int
 mkGenAlgConfig :: MinLength
                -> MaxLength
                -> PopSize
