@@ -7,7 +7,7 @@ module Algorithm.Domain.SimpleArith where
 
 import Algorithm.GenAlg hiding (mkGenAlgConfig)
 import qualified Algorithm.GenAlg as GA (mkGenAlgConfig)
-import Algorithm.GenAlg.Dist
+import Algorithm.GenAlg.Utils.Dist
 
 import Prelude hiding (head, undefined)
 import Control.Monad.Random

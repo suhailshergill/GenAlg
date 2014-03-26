@@ -3,7 +3,7 @@ Module: Algorithm.GenAlg.Dist
 
 Some utilities which allow us to sample in particular ways
 -}
-module Algorithm.GenAlg.Dist (
+module Algorithm.GenAlg.Utils.Dist (
   uniformButNot
   , randomButNot
   , bernoulli

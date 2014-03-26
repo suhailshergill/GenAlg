@@ -4,7 +4,7 @@
 module QuickCheckTests where
 
 import Algorithm.GenAlg hiding (mkGenAlgConfig)
-import Algorithm.GenAlg.Dist
+import Algorithm.GenAlg.Utils.Dist
 import Algorithm.Domain.SimpleArith
 import Control.Monad.Random
 import Data.List
