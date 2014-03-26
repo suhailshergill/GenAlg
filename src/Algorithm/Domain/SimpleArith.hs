@@ -8,8 +8,10 @@ module Algorithm.Domain.SimpleArith where
 import Algorithm.GenAlg hiding (mkGenAlgConfig)
 import qualified Algorithm.GenAlg as GA (mkGenAlgConfig)
 import Algorithm.GenAlg.Utils.Dist
+import Algorithm.GenAlg.Utils.Instances
 
 import Prelude hiding (head, undefined)
+import Control.Monad
 import Control.Monad.Random
 import Control.Lens
 import Data.Data
@@ -17,21 +19,16 @@ import Data.Data.Lens (uniplate)
 import Safe
 
 import Test.QuickCheck
+import Test.QuickCheck.Gen
 
 data Digits = Zero | One | Two | Three | Four | Five | Six | Seven | Eight | Nine
             deriving (Bounded, Enum, Eq, Ord, Read, Show, Typeable, Data)
 
--- | Generate random digits
-instance Random Digits where
-  randomR (a, b) g =
-    case randomR (fromEnum a, fromEnum b) g of
-      (x, g') -> (toEnum x, g')
-  random g = randomR (minBound, maxBound) g
-
 
 -- | Generate random Digits for testing with QuickCheck
+-- FIXME: move this to tests?
 instance Arbitrary Digits where
-  arbitrary = arbitraryBoundedRandom
+  arbitrary = MkGen (\x y -> random2Enum ((unGen arbitraryBoundedRandom) x y))
   shrink = shrinkNothing
 
 -- | The AST of our toy arithmetic language. Since operation parsing is from
@@ -96,7 +93,7 @@ randomPair startState = case startState of
     digitOps = [IncBy, MulBy, DecBy, DivBy]
     validLeft digitOp = if digitOp == DivBy
                         then randomButNot Zero
-                        else liftRand random
+                        else liftM random2Enum (liftRand random)
 
 -- | Calculate the size of a chromosome.
 --
@@ -273,7 +270,7 @@ getRandomChromosome (MinLength l1) (MaxLength l2) =
     randomChromosomeOfLength :: Length
                              -> (Rand StdGen) (Chromosome Digits)
     randomChromosomeOfLength 1 = do
-      digit <- liftRand random
+      digit <- liftM random2Enum (liftRand random)
       return $ Lit digit
     randomChromosomeOfLength n = do
       (digitOp, digit) <- randomPair Nothing
